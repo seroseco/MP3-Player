@@ -1,0 +1,105 @@
+{
+  "resolution": [
+    320,
+    480
+  ],
+  "title": "PMP Shell",
+  "device_name": "나의 PMP",
+  "language": "ko",
+  "theme": "light",
+  "accent_color": "blue",
+  "brightness": 100,
+  "wallpaper": "./system/UI/default1.png",
+  "music_shuffle": false,
+  "music_repeat": "off",
+  "music_volume": 0.43,
+  "apps": [
+    {
+      "key": "music",
+      "name": "음악",
+      "cmd": [
+        "mpv",
+        "--no-video",
+        "--shuffle",
+        "./files/music"
+      ]
+    },
+    {
+      "key": "video",
+      "name": "비디오",
+      "cmd": [
+        "mpv",
+        "--fs",
+        "./files/video"
+      ]
+    },
+    {
+      "key": "photo",
+      "name": "사진",
+      "cmd": [
+        "feh",
+        "-F",
+        "./files/image"
+      ]
+    },
+    {
+      "key": "textviewer",
+      "name": "텍스트 뷰어",
+      "icon": "document"
+    },
+    {
+      "key": "calculator",
+      "name": "계산기",
+      "icon": "calculator"
+    },
+    {
+      "key": "calender",
+      "name": "캘린더",
+      "icon": "calender"
+    },
+    {
+      "key": "files",
+      "name": "파일",
+      "cmd": [
+        "bash",
+        "-lc",
+        "ls -lah"
+      ]
+    },
+    {
+      "key": "settings",
+      "name": "설정",
+      "icon": "setting",
+      "builtin": "settings"
+    },
+    {
+      "key": "power",
+      "name": "전원",
+      "builtin": "power"
+    }
+  ],
+  "music_likes": [],
+  "music_last_index": 1,
+  "music_queue_source": "songs",
+  "music_queue_album": null,
+  "music_queue_artist": null,
+  "music_queue_sort": "artist",
+  "music_sort": "name",
+  "music_last_path": "/Users/kimroi/Documents/프로그래밍/Python/PMP/files/music/Sample_Festivities_at_the_Royal_Court.mp3",
+  "time_24h": false,
+  "video_sort": "name",
+  "video_volume": 0.43,
+  "video_rotation": 90,
+  "bt_airpods_name": "AirPods Pro - Find My",
+  "bt_audi_name": "Audi A6",
+  "bt_enabled": false,
+  "fake_battery_level": 73,
+  "fake_battery_health": 100,
+  "fake_battery_saver": false,
+  "fake_battery_charging": false,
+  "home_show_power": true,
+  "device_model": "PMP",
+  "device_model_name": "PMP Shell",
+  "vk_lang_pref": "en",
+  "music_queue_genre": null
+}
