@@ -1,5 +1,5 @@
 # MP3 Player
-![Preview](.github/main.png)
+![Preview](./github/main.png)
 
 ## ✨ 주요 기능
 - 홈 런처 UI 및 앱 전환
