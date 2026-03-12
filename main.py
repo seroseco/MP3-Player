@@ -30,7 +30,7 @@ DEFAULT_ALBUM_ART = os.path.join(UI_DIR, "albumart.png")
 DEFAULT_VIDEO_THUMB = os.path.join(UI_DIR, "videoimg.png")
 DEFAULT_TEXT_THUMB = os.path.join(UI_DIR, "txtimg.png")
 DEFAULT_PHOTO_THUMB = os.path.join(UI_DIR, "photoimg.png")
-SOFTWARE_INFO_VERSION = "Roy's PMP 1.0.0"
+SOFTWARE_INFO_VERSION = "Roy's PMP 1.0.1"
 LEGACY_VIDEO_THUMB = os.path.join(BASE_DIR, "system", "ui", "videoimg.png")
 MUSIC_DIR = os.path.join(BASE_DIR, "files", "music")
 VIDEO_DIR = os.path.join(BASE_DIR, "files", "video")
@@ -60,24 +60,26 @@ PHOTO_ROTATION_FIXES = {
 
 
 def load_config():
+    data = {}
     # 기본 설정 파일 우선, 없으면 레거시 설정을 읽어 마이그레이션한다.
     if os.path.isfile(CONFIG_PATH):
         try:
             with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                return data if isinstance(data, dict) else {}
+                loaded = json.load(f)
+                if isinstance(loaded, dict):
+                    data = loaded
         except Exception:
-            return {}
-    if os.path.isfile(LEGACY_CONFIG_PATH):
+            data = {}
+    elif os.path.isfile(LEGACY_CONFIG_PATH):
         try:
             with open(LEGACY_CONFIG_PATH, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                if isinstance(data, dict):
+                loaded = json.load(f)
+                if isinstance(loaded, dict):
+                    data = loaded
                     save_config(data)
-                    return data
         except Exception:
-            return {}
-    return {}
+            data = {}
+    return data if isinstance(data, dict) else {}
 
 
 def save_config(cfg):
@@ -304,6 +306,8 @@ class Shell:
         self.general_reset_confirm_ms = 180
         self.device_model = norm_text(str(cfg.get("device_model", "PMP")))
         self.device_model_name = norm_text(str(cfg.get("device_model_name", "PMP Shell")))
+        self.serial_number = norm_text(str(cfg.get("serial_number", "0000000000")))
+        self.bt_address = norm_text(str(cfg.get("bt_address", "00:00:00:00:00:00")))
         self.settings_info_tab = "basic"
         self.settings_info_name_popup_active = False
         self.settings_info_name_popup_start = 0
@@ -746,6 +750,8 @@ class Shell:
         self.vk_mode = self.vk_lang_pref
         self.home_show_power = True
         self.bt_enabled = False
+        self.serial_number = "0000000000"
+        self.bt_address = "00:00:00:00:00:00"
         self.fake_battery_level = 73
         self.fake_battery_health = 100
         self.fake_battery_saver = False
@@ -837,6 +843,8 @@ class Shell:
         self.cfg["wallpaper"] = self.wallpaper
         self.cfg["device_model"] = self.device_model
         self.cfg["device_model_name"] = self.device_model_name
+        self.cfg["serial_number"] = self.serial_number
+        self.cfg["bt_address"] = self.bt_address
         self.cfg["home_show_power"] = bool(self.home_show_power)
         self.cfg["vk_lang_pref"] = self.vk_lang_pref
         self.cfg["music_shuffle"] = self.shuffle_enabled
@@ -2287,11 +2295,38 @@ class Shell:
         right = pygame.Rect(left.right, y, w, h)
         return {"12": left, "24": right}
 
-    def settings_info_edit_rects(self):
+    def settings_info_edit_rects(self, scroll=0.0):
         y = STATUS_H + 48
         y += 24
-        name_row = pygame.Rect(14, y, self.w - 28, 42)
+        name_row = pygame.Rect(14, int(y - scroll), self.w - 28, 42)
         return {"name_row": name_row}
+
+    def settings_info_scroll_rect(self):
+        top = STATUS_H + 48
+        bottom = self.h - 10
+        return pygame.Rect(0, top, self.w, max(1, bottom - top))
+
+    def settings_info_content_height(self):
+        y = STATUS_H + 48
+        y += 24  # basic label
+        y += 42  # name row
+        y += 8
+        y += 8
+        y += 24  # detail label
+        y += (46 * 4)  # product/model/serial/bt rows
+        y += 8
+        y += 24  # software label
+        y += 42  # version row
+        y += 8
+        y += 22  # usage+storage label
+        y += (46 * 6)  # usage rows + storage rows
+        return y - (STATUS_H + 48)
+
+    def settings_info_scroll_info(self):
+        rect = self.settings_info_scroll_rect()
+        row_h = 18
+        total = max(1, int(math.ceil(self.settings_info_content_height() / float(row_h))))
+        return rect, total, row_h
 
     def settings_info_name_dialog_rects(self):
         w, h = 276, 166
@@ -4629,6 +4664,8 @@ class Shell:
             rect, total, row_h = self.files_scroll_info()
         elif self.state == "MUSIC" and self.music_view in ("LIST", "QUEUE", "ALBUMS", "ARTISTS", "ARTIST_ALBUMS", "GENRES"):
             rect, total, row_h = self.music_scroll_info()
+        elif self.state == "SETTINGS_INFO" and not self.settings_info_name_popup_active:
+            rect, total, row_h = self.settings_info_scroll_info()
         else:
             self.list_scroll = 0.0 if self.list_scroll < 0 else self.list_scroll
             self.list_scroll_target = 0.0 if self.list_scroll_target < 0 else self.list_scroll_target
@@ -4715,6 +4752,8 @@ class Shell:
         self.brightness = int(clamp(self.cfg.get("brightness", self.brightness), 40, 100))
         self.time_24h = bool(self.cfg.get("time_24h", self.time_24h))
         self.device_name = norm_text(self.cfg.get("device_name", self.device_name))
+        self.serial_number = norm_text(str(self.cfg.get("serial_number", self.serial_number)))
+        self.bt_address = norm_text(str(self.cfg.get("bt_address", self.bt_address)))
         self.wallpaper = str(self.cfg.get("wallpaper", self.wallpaper))
         self.accent_key = str(self.cfg.get("accent_color", self.accent_key))
         if self.accent_key not in ACCENT_PRESETS:
@@ -5926,6 +5965,10 @@ class Shell:
             rect, _total, _row_h = self.music_scroll_info()
             if rect and rect.collidepoint(pos):
                 self.begin_list_touch_drag(pos)
+        elif self.state == "SETTINGS_INFO" and not self.settings_info_name_popup_active:
+            rect, _total, _row_h = self.settings_info_scroll_info()
+            if rect and rect.collidepoint(pos):
+                self.begin_list_touch_drag(pos)
 
     # 터치 이동: 스와이프/관성 스크롤/진행바 드래그 값을 실시간 갱신
     def handle_touch_move(self, pos, raw_pos=None):
@@ -5948,12 +5991,13 @@ class Shell:
                     self.page = (self.page - 1) % self.total_pages
                     self.toast(self.tr("toast.prev"))
                 self.active_button = None
-        elif self.state in ("MUSIC", "VIDEO", "PHOTO", "TEXT", "FILES"):
+        elif self.state in ("MUSIC", "VIDEO", "PHOTO", "TEXT", "FILES", "SETTINGS_INFO"):
             if self.list_touch_drag and (
                 (self.state == "VIDEO" and self.video_view == "LIST")
                 or (self.state == "TEXT" and self.text_view in ("LIST", "READER"))
                 or (self.state == "FILES" and self.files_view in ("ROOT", "LIST"))
                 or (self.state == "PHOTO" and self.photo_view == "GRID")
+                or (self.state == "SETTINGS_INFO" and not self.settings_info_name_popup_active)
                 or self.music_view in ("LIST", "QUEUE", "ALBUMS", "ARTISTS", "ARTIST_ALBUMS", "GENRES")
             ):
                 if self.state == "VIDEO" and self.video_view == "LIST":
@@ -5969,6 +6013,8 @@ class Shell:
                     rect, total_items, row_h = self.files_scroll_info()
                 elif self.state == "PHOTO":
                     rect, total_items, row_h = self.photo_scroll_info()
+                elif self.state == "SETTINGS_INFO":
+                    rect, total_items, row_h = self.settings_info_scroll_info()
                 else:
                     rect, total_items, row_h = self.music_scroll_info()
                 if rect:
@@ -6157,7 +6203,7 @@ class Shell:
         if self.vk_visible and self.vk_handle_touch(rpos):
             return
 
-        if self.state in ("MUSIC", "VIDEO", "PHOTO", "TEXT", "FILES") and self.list_touch_drag and self.list_touch_moved:
+        if self.state in ("MUSIC", "VIDEO", "PHOTO", "TEXT", "FILES", "SETTINGS_INFO") and self.list_touch_drag and self.list_touch_moved:
             self.list_scroll_inertia_active = abs(self.list_scroll_velocity) >= 0.05
             self.list_touch_drag = False
             self.list_touch_moved = False
@@ -6743,6 +6789,7 @@ class Shell:
                     elif key == "info":
                         self.pending_back_transition = False
                         self.settings_info_tab = "basic"
+                        self.set_list_scroll(0, snap=True)
                         self.state = "SETTINGS_INFO"
                     else:
                         self.toast(self.tr("toast.not_implemented", default="준비 중인 기능입니다"))
@@ -6922,7 +6969,8 @@ class Shell:
                 self.editing_name = False
                 self.state = "SETTINGS_FULL"
                 return
-            ui = self.settings_info_edit_rects()
+            _r, _t, row_h = self.settings_info_scroll_info()
+            ui = self.settings_info_edit_rects(scroll=self.list_scroll * row_h)
             if ui["name_row"].collidepoint(pos):
                 self.settings_info_name_popup_active = True
                 self.settings_info_name_popup_start = pygame.time.get_ticks()
@@ -8259,14 +8307,23 @@ class Shell:
         self.draw_statusbar()
         title = self.title_font.render(self.tr("settings.device_info", default="디바이스 정보"), True, pal["text"])
         self.screen.blit(title, (14, STATUS_H + 12))
+        viewport = self.settings_info_scroll_rect()
+        rect, total, row_h = self.settings_info_scroll_info()
+        max_rows = self.scroll_page_rows(rect, row_h)
+        max_scroll = float(max(0, total - max_rows))
+        self.list_scroll = float(clamp(self.list_scroll, 0.0, max_scroll))
+        self.list_scroll_target = float(clamp(self.list_scroll_target, 0.0, max_scroll))
+        scroll = self.list_scroll * row_h
         row_bg = self.tone(pal["panel_bg"], 4)
         row_bd = pal["panel_border"]
-        y = STATUS_H + 48
+        prev_clip = self.screen.get_clip()
+        self.screen.set_clip(viewport)
+        y = STATUS_H + 48 - int(scroll)
 
         basic_label = self.font.render(self.tr("settings.device_info.basic", default="기본 정보"), True, pal["text"])
         self.screen.blit(basic_label, (14, y))
         y += 24
-        ui = self.settings_info_edit_rects()
+        ui = self.settings_info_edit_rects(scroll=scroll)
         rr = ui["name_row"]
         name_bg = self.tone(row_bg, 8) if self.editing_name else row_bg
         name_bd = self.ui_accent() if self.editing_name else row_bd
@@ -8294,7 +8351,12 @@ class Shell:
         detail_label = self.font.render(self.tr("settings.device_info.detail", default="기기 세부 정보"), True, pal["text"])
         self.screen.blit(detail_label, (14, y))
         y += 24
-        for label, value in [(self.tr("settings.device_info.product", default="제품명"), self.device_model), (self.tr("settings.device_info.model_name", default="모델명"), self.device_model_name)]:
+        for label, value in [
+            (self.tr("settings.device_info.product"), self.device_model),
+            (self.tr("settings.device_info.model_name"), self.device_model_name),
+            (self.tr("settings.device_info.serial_number"), self.serial_number),
+            (self.tr("settings.device_info.bt_address"), self.bt_address),
+        ]:
             rr = pygame.Rect(14, y, self.w - 28, 42)
             pygame.draw.rect(self.screen, row_bg, rr, border_radius=10)
             pygame.draw.rect(self.screen, row_bd, rr, width=1, border_radius=10)
@@ -8315,6 +8377,44 @@ class Shell:
         vt = self.small_font.render(SOFTWARE_INFO_VERSION, True, self.tone(pal["text"], 35))
         self.screen.blit(lt, (rr.x + 10, rr.centery - lt.get_height() // 2))
         self.screen.blit(vt, (rr.right - 10 - vt.get_width(), rr.centery - vt.get_height() // 2))
+        y = rr.bottom + 8
+
+        usage_label = self.font.render(self.tr("settings.device_info.usage_storage"), True, pal["text"])
+        self.screen.blit(usage_label, (14, y))
+        y += 22
+        section_items = [
+            (self.tr("settings.device_info.usage.music"), len(self.music_files)),
+            (self.tr("settings.device_info.usage.video"), len(self.video_files)),
+            (self.tr("settings.device_info.usage.photo"), len(self.photo_files)),
+            (self.tr("settings.device_info.usage.document"), len(self.text_files)),
+        ]
+
+        storage_root = os.path.join(BASE_DIR, "files")
+        if not os.path.isdir(storage_root):
+            storage_root = BASE_DIR
+        try:
+            du = shutil.disk_usage(storage_root)
+            total_space = self.format_file_size(du.total)
+            free_space = self.format_file_size(du.free)
+        except Exception:
+            total_space = "0B"
+            free_space = "0B"
+
+        storage_items = [
+            (self.tr("settings.device_info.storage.total"), total_space),
+            (self.tr("settings.device_info.storage.available"), free_space),
+        ]
+        section_items.extend(storage_items)
+        for label, value in section_items:
+            item_rr = pygame.Rect(14, y, self.w - 28, 42)
+            pygame.draw.rect(self.screen, row_bg, item_rr, border_radius=10)
+            pygame.draw.rect(self.screen, row_bd, item_rr, width=1, border_radius=10)
+            lt = self.font.render(label, True, pal["text"])
+            vt = self.small_font.render(str(value), True, self.tone(pal["text"], 35))
+            self.screen.blit(lt, (item_rr.x + 10, item_rr.centery - lt.get_height() // 2))
+            self.screen.blit(vt, (item_rr.right - 10 - vt.get_width(), item_rr.centery - vt.get_height() // 2))
+            y += 46
+        self.screen.set_clip(prev_clip)
 
         if self.settings_info_name_popup_active:
             p = clamp((pygame.time.get_ticks() - self.settings_info_name_popup_start) / max(1, self.settings_info_name_popup_ms), 0.0, 1.0)
@@ -10104,6 +10204,7 @@ class Shell:
                     or (self.state == "TEXT" and self.text_view in ("LIST", "READER"))
                     or (self.state == "FILES" and self.files_view in ("ROOT", "LIST"))
                     or (self.state == "PHOTO" and self.photo_view == "GRID")
+                    or (self.state == "SETTINGS_INFO" and not self.settings_info_name_popup_active)
                 ):
                     if self.state == "VIDEO" and self.video_view == "LIST":
                         rect, total_items, row_h = self.video_scroll_info()
@@ -10118,6 +10219,8 @@ class Shell:
                         rect, total_items, row_h = self.files_scroll_info()
                     elif self.state == "PHOTO":
                         rect, total_items, row_h = self.photo_scroll_info()
+                    elif self.state == "SETTINGS_INFO":
+                        rect, total_items, row_h = self.settings_info_scroll_info()
                     else:
                         h = self.music_list_rect().h if self.music_view in ("LIST", "QUEUE") else self.music_group_rect().h
                         row_h = 30
@@ -10184,6 +10287,7 @@ class Shell:
                     or (self.state == "TEXT" and self.text_view in ("LIST", "READER"))
                     or (self.state == "FILES" and self.files_view in ("ROOT", "LIST"))
                     or (self.state == "PHOTO" and self.photo_view == "GRID")
+                    or (self.state == "SETTINGS_INFO" and not self.settings_info_name_popup_active)
                 ):
                     if self.state == "VIDEO" and self.video_view == "LIST":
                         rect, total_items, row_h = self.video_scroll_info()
@@ -10198,6 +10302,8 @@ class Shell:
                         rect, total_items, row_h = self.files_scroll_info()
                     elif self.state == "PHOTO":
                         rect, total_items, row_h = self.photo_scroll_info()
+                    elif self.state == "SETTINGS_INFO":
+                        rect, total_items, row_h = self.settings_info_scroll_info()
                     else:
                         h = self.music_list_rect().h if self.music_view in ("LIST", "QUEUE") else self.music_group_rect().h
                         row_h = 30

@@ -83,9 +83,9 @@
   "music_queue_source": "songs",
   "music_queue_album": null,
   "music_queue_artist": null,
-  "music_queue_sort": "artist",
+  "music_queue_sort": "name",
   "music_sort": "name",
-  "music_last_path": "/Users/kimroi/Documents/프로그래밍/Python/PMP/files/music/Sample_Festivities_at_the_Royal_Court.mp3",
+  "music_last_path": "/Users/kimroi/Documents/프로그래밍/Git Clone/MP3-Player/files/music/Sample_Festivities_at_the_Royal_Court.mp3",
   "time_24h": false,
   "video_sort": "name",
   "video_volume": 0.43,
@@ -100,6 +100,8 @@
   "home_show_power": true,
   "device_model": "PMP",
   "device_model_name": "PMP Shell",
+  "serial_number": "0000000000",
+  "bt_address": "00:00:00:00:00:00",
   "vk_lang_pref": "en",
   "music_queue_genre": null
 }
